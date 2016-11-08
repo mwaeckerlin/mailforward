@@ -2,9 +2,9 @@ FROM ubuntu
 MAINTAINER mwaeckerlin
 
 # setup domains as in the following example:
-ENV MAILHOST mail.example.com
-ENV DOMAINS example.com xyz.com
-ENV MAPPINGS test@example.com test@mydomain.com, info@xyz.com test@anotherdomain.com
+#ENV MAILHOST mail.example.com
+ENV DOMAINS ""
+ENV MAPPINGS ""
 
 EXPOSE 25 587
 
