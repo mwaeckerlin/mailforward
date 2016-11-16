@@ -1,28 +1,22 @@
 FROM ubuntu
 MAINTAINER mwaeckerlin
+ENV TERM xterm
 
 # setup domains as in the following example:
-#ENV MAILHOST mail.example.com
+ENV MAILHOST mail.example.com
 ENV DOMAINS ""
 ENV MAPPINGS ""
 
 EXPOSE 25 587
 
-VOLUME ["/var/spool/mail/"]
-
-WORKDIR /tmp
+VOLUME /var/spool/mail/
 
 # Preselections for installation 
-RUN echo mail > /etc/hostname; \
-    echo "postfix postfix/main_mailer_type string Internet site" >> preseed.txt; \
-    echo "postfix postfix/mailname string mail.example.com" >> preseed.txt; \
-    debconf-set-selections preseed.txt && rm preseed.txt
-
-# Install packages
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends postfix && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* preseed.txt
+RUN echo mail > /etc/hostname
+RUN echo "postfix postfix/mailname string your.hostname.com" | debconf-set-selections
+RUN echo "postfix postfix/main_mailer_type string 'Internet Site'" | debconf-set-selections
+RUN apt-get update
+RUN apt-get install -y postfix
 
 # Configure
 RUN postconf -e smtpd_banner="\$myhostname ESMTP" && \
@@ -35,4 +29,4 @@ ADD start.sh /start.sh
 
 WORKDIR /var/spool/mail/
     
-CMD ["/start.sh"]
+CMD /start.sh
