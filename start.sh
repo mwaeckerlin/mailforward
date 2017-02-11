@@ -29,7 +29,7 @@ postmap /etc/postfix/virtual
 
 # setup logging
 ! test -e /var/log/mail.log || rm /var/log/mail.log
-ln -sf /proc/$$/fd/1 /var/log/mail.log
+ln -sf /proc/self/fd/1 /var/log/mail.log
 
 service postfix restart
 sleep infinity
