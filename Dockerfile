@@ -1,6 +1,7 @@
 FROM mwaeckerlin/ubuntu-base
 MAINTAINER mwaeckerlin
 ENV TERM xterm
+ENV VERSION="1.0.0"
 
 # setup domains as in the following example:
 ENV MAILHOST mail.example.com
