@@ -16,7 +16,7 @@ if test -e /etc/letsencrypt/live/${DOMAIN}/fullchain.pem \
     postconf -e smtpd_tls_cert_file=/etc/letsencrypt/live/${DOMAIN}/fullchain.pem
     postconf -e smtpd_tls_key_file=/etc/letsencrypt/live/${DOMAIN}/privkey.pem
     postconf -e smtpd_use_tls=yes
-    postconf -e smtpd_tls_security_level=encrypt
+    postconf -e smtpd_tls_security_level=may
 fi
 
 # virtual hosts
