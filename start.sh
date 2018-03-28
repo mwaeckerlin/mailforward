@@ -26,4 +26,6 @@ sed 's/, */\n/g' <<<"$MAPPINGS" > /etc/postfix/virtual
 postconf -e virtual_alias_domains="$(sed 's, .*,,g;s,^[^@]*@,,g' /etc/postfix/virtual | sort | uniq | tr '\n' ' ')"
 postmap /etc/postfix/virtual
 
-exec /usr/lib/postfix/sbin/master -c /etc/postfix -d 2>&1
+service syslog-ng restart
+service postfix restart
+tail -F /var/log/mail.log

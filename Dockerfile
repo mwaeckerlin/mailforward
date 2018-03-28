@@ -11,7 +11,7 @@ EXPOSE 25
 RUN echo mail > /etc/hostname
 RUN echo "postfix postfix/mailname string your.hostname.com" | debconf-set-selections
 RUN echo "postfix postfix/main_mailer_type string 'Internet Site'" | debconf-set-selections
-RUN apt-get install -y postfix telnet
+RUN apt-get install -y postfix telnet syslog-ng
 
 # Configure Defaults
 RUN postconf -e smtpd_banner="\$myhostname ESMTP"
