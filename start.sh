@@ -23,7 +23,9 @@ fi
 postconf -e "myhostname=${DOMAIN}"
 postconf -e "virtual_alias_maps=hash:/etc/postfix/virtual"
 sed 's/, */\n/g' <<<"$MAPPINGS" > /etc/postfix/virtual
-postconf -e virtual_alias_domains="$(sed 's, .*,,g;s,^[^@]*@,,g' /etc/postfix/virtual | sort | uniq | tr '\n' ' ')"
+DOMAINS="$(sed 's, .*,,g;s,^[^@]*@,,g' /etc/postfix/virtual | sort | uniq | tr '\n' ' ')"
+postconf -e mydestination="$DOMAINS"
+postconf -e virtual_alias_domains="$DOMAINS"
 postmap /etc/postfix/virtual
 
 touch /var/log/mail.log
