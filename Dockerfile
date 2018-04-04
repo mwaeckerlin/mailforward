@@ -4,6 +4,8 @@ MAINTAINER mwaeckerlin
 # setup domains as in the following example:
 ENV MAILHOST ""
 ENV MAPPINGS ""
+ENV LOCAL_DOMAINS ""
+ENV GREYLIST ""
 
 EXPOSE 25
 

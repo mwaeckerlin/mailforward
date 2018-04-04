@@ -1,13 +1,14 @@
 #!/bin/bash -ex
 
 # options
-DOMAIN=${MAILHOST:-$(sed 's,^[^@]*@\([^ ]*\).*,\1,' <<<${MAPPINGS})}
+sed 's/, */\n/g' <<<"$MAPPINGS" > /etc/postfix/virtual
+ALIAS_DOMAINS="$(sed 's, .*,,g;s,^[^@]*@,,g' /etc/postfix/virtual | sort | uniq | tr '\n' ' ')"
+ALL_DOMAINS="${LOCAL_DOMAINS}${ALIAS_DOMAINS:+ ${ALIAS_DOMAINS}}"
+DOMAIN=${MAILHOST:-$(sed 's,^\([^ ]*\).*,\1,' <<<${ALL_DOMAINS})}
 
-# greylist filter use --link geylist-container:postgrey
-GREYLIST=""
-if test -n "${POSTGREY_PORT_10023_TCP_ADDR}"; then
-    GREYLIST=", check_policy_service inet:${POSTGREY_PORT_10023_TCP_ADDR}:10023"
-    postconf -e "$(postconf smtpd_client_restrictions)${GREYLIST}"
+# greylist filter use GREYLIST=host:port or --link greylist-container:postgrey
+if test -n "${GREYLIST:-${POSTGREY_PORT_10023_TCP_ADDR}}"; then
+    postconf -e "$(postconf smtpd_client_restrictions), check_policy_service inet:${GREYLIST:-${POSTGREY_PORT_10023_TCP_ADDR}:10023}"
 fi
 
 # check if letsencrypt certificates exist
@@ -19,13 +20,10 @@ if test -e /etc/letsencrypt/live/${DOMAIN}/fullchain.pem \
     postconf -e smtpd_tls_security_level=may
 fi
 
-# virtual hosts
 postconf -e "myhostname=${DOMAIN}"
+postconf -e mydestination="$ALL_DOMAINS"
+postconf -e virtual_alias_domains="$ALIAS_DOMAINS"
 postconf -e "virtual_alias_maps=hash:/etc/postfix/virtual"
-sed 's/, */\n/g' <<<"$MAPPINGS" > /etc/postfix/virtual
-DOMAINS="$(sed 's, .*,,g;s,^[^@]*@,,g' /etc/postfix/virtual | sort | uniq | tr '\n' ' ')"
-postconf -e mydestination="$DOMAINS"
-postconf -e virtual_alias_domains="$DOMAINS"
 postmap /etc/postfix/virtual
 
 touch /var/log/mail.log
