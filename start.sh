@@ -1,10 +1,10 @@
-#!/bin/bash -ex
+#!/bin/sh -ex
 
 # options
-sed 's/; */\n/g' <<<"$MAPPINGS" > /etc/postfix/virtual
+echo "$MAPPINGS" | sed 's/; */\n/g' > /etc/postfix/virtual
 ALIAS_DOMAINS="$(sed 's, .*,,g;s,^[^@]*@,,g' /etc/postfix/virtual | sort | uniq | tr '\n' ' ')"
 ALL_DOMAINS="${LOCAL_DOMAINS}${ALIAS_DOMAINS:+ ${ALIAS_DOMAINS}}"
-DOMAIN=${MAILHOST:-$(sed 's,^\([^ ]*\).*,\1,' <<<${ALL_DOMAINS})}
+DOMAIN=${MAILHOST:-$(echo "${ALL_DOMAINS}" | sed 's,^\([^ ]*\).*,\1,')}
 
 # greylist filter use GREYLIST=host:port or --link greylist-container:postgrey
 if test -n "${GREYLIST:-${POSTGREY_PORT_10023_TCP_ADDR}}"; then
@@ -26,7 +26,4 @@ postconf -e virtual_alias_domains="$ALIAS_DOMAINS"
 postconf -e "virtual_alias_maps=hash:/etc/postfix/virtual"
 postmap /etc/postfix/virtual
 
-touch /var/log/mail.log
-/usr/sbin/dsyslog
-service postfix restart
-tail -F /var/log/mail.log
+/start-postfix-tls.sh

@@ -9,6 +9,7 @@ ENV GREYLIST ""
 
 EXPOSE 25
 
+ENV CONTAINERNAME "mailforward"
 RUN echo mail > /etc/hostname \
  && postconf -e mydestination="localhost" \
  && postconf -e smtpd_use_tls=no \
