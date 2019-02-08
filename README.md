@@ -7,7 +7,7 @@ your domains to another mail account? Then you found the solution!
 This docker image just forwards all mails to predefined aliases to
 other accounts.
 
-In `MAPPINGS`, you can define a comma separated list of virtual aliases.
+In `MAPPINGS`, you can define a semicolon separated list of virtual aliases.
 
 Optionally you can specify your mail servers full qualified host name
 in `MAILHOST`. By default, it is set to the first vitual alias domain
@@ -22,7 +22,7 @@ account in your company `info@mycompany.com`.
 
     docker run -d --restart unless-stopped --name mailforward \
                -p 25:25 \
-               -e 'MAPPINGS=info@example.com info@mycompany.com, info@example.net info@mycompany.com' \
+               -e 'MAPPINGS=info@example.com info@mycompany.com; info@example.net info@mycompany.com' \
                mwaeckerlin/mailforward
               
 Mail host name is set to `example.com`, because `info@example.com` is

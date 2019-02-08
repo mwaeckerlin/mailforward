@@ -1,7 +1,7 @@
 #!/bin/bash -ex
 
 # options
-sed 's/, */\n/g' <<<"$MAPPINGS" > /etc/postfix/virtual
+sed 's/; */\n/g' <<<"$MAPPINGS" > /etc/postfix/virtual
 ALIAS_DOMAINS="$(sed 's, .*,,g;s,^[^@]*@,,g' /etc/postfix/virtual | sort | uniq | tr '\n' ' ')"
 ALL_DOMAINS="${LOCAL_DOMAINS}${ALIAS_DOMAINS:+ ${ALIAS_DOMAINS}}"
 DOMAIN=${MAILHOST:-$(sed 's,^\([^ ]*\).*,\1,' <<<${ALL_DOMAINS})}
@@ -21,7 +21,7 @@ if test -e /etc/letsencrypt/live/${DOMAIN}/fullchain.pem \
 fi
 
 postconf -e "myhostname=${DOMAIN}"
-postconf -e mydestination="$ALL_DOMAINS"
+postconf -e mydestination="$LOCAL_DOMAINS"
 postconf -e virtual_alias_domains="$ALIAS_DOMAINS"
 postconf -e "virtual_alias_maps=hash:/etc/postfix/virtual"
 postmap /etc/postfix/virtual
