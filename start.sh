@@ -25,5 +25,6 @@ postconf -e mydestination="$LOCAL_DOMAINS"
 postconf -e virtual_alias_domains="$ALIAS_DOMAINS"
 postconf -e "virtual_alias_maps=hash:/etc/postfix/virtual"
 postmap /etc/postfix/virtual
+postalias /etc/postfix/aliases
 
 /start-postfix-tls.sh
