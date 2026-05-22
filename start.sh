@@ -1,4 +1,4 @@
-#!/bin/sh -ex
+#!/bin/bash -ex
 
 # options
 echo "$MAPPINGS" | sed 's/; */\n/g' >/etc/postfix/virtual
@@ -6,10 +6,16 @@ ALIAS_DOMAINS="$(sed 's, .*,,g;s,^[^@]*@,,g' /etc/postfix/virtual | sort | uniq 
 ALL_DOMAINS="${LOCAL_DOMAINS}${ALIAS_DOMAINS:+ ${ALIAS_DOMAINS}}"
 DOMAIN=${MAILHOST:-$(echo "${ALL_DOMAINS}" | sed 's,^\([^ ]*\).*,\1,')}
 
-# greylist filter use GREYLIST=host:port or --link greylist-container:postgrey
-if test -n "${GREYLIST:-${POSTGREY_PORT_10023_TCP_ADDR}}" && ! postconf smtpd_client_restrictions | grep -q "inet:${GREYLIST:-${POSTGREY_PORT_10023_TCP_ADDR}}:10023"; then
-    postconf -e "$(postconf smtpd_client_restrictions), check_policy_service inet:${GREYLIST:-${POSTGREY_PORT_10023_TCP_ADDR}}:10023"
-    echo "**** Greylisting configured to use ${GREYLIST:-${POSTGREY_PORT_10023_TCP_ADDR}}:10023"
+# greylisting milter use GREYLIST=host:port or GREYLIST=host (default port)
+if [[ -n "${GREYLIST}" && "${GREYLIST}" != *:* ]]; then
+    GREYLIST="${GREYLIST}:10025"
+fi
+if [[ -n "${GREYLIST}" && ! "$(postconf smtpd_milters)" =~ "inet:${GREYLIST}" ]]; then
+    postconf -e "smtpd_milters=inet:${GREYLIST}"
+    postconf -e "non_smtpd_milters=inet:${GREYLIST}"
+    postconf -e "milter_default_action=accept"
+    postconf -e "milter_protocol=6"
+    echo "**** Greylisting milter configured to use ${GREYLIST}"
 fi
 
 # check if letsencrypt certificates exist
