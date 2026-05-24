@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/sh -ex
 
 # options
 echo "$MAPPINGS" | sed 's/; */\n/g' >/etc/postfix/virtual
@@ -7,10 +7,10 @@ ALL_DOMAINS="${LOCAL_DOMAINS}${ALIAS_DOMAINS:+ ${ALIAS_DOMAINS}}"
 DOMAIN=${MAILHOST:-$(echo "${ALL_DOMAINS}" | sed 's,^\([^ ]*\).*,\1,')}
 
 # greylisting milter use GREYLIST=host:port or GREYLIST=host (default port)
-if [[ -n "${GREYLIST}" && "${GREYLIST}" != *:* ]]; then
+if [ -n "${GREYLIST}" ] && [ "${GREYLIST}" = "${GREYLIST%:*}" ]; then
     GREYLIST="${GREYLIST}:10025"
 fi
-if [[ -n "${GREYLIST}" && ! "$(postconf smtpd_milters)" =~ "inet:${GREYLIST}" ]]; then
+if [ -n "${GREYLIST}" ] && ! postconf smtpd_milters | grep -q "inet:${GREYLIST}"; then
     postconf -e "smtpd_milters=inet:${GREYLIST}"
     postconf -e "non_smtpd_milters=inet:${GREYLIST}"
     postconf -e "milter_default_action=accept"
