@@ -1,0 +1,30 @@
+# Build / standalone smoke compose — build the image on its own for
+# testing. Not a production deployment; see the README for the real
+# run example (MAPPINGS, GREYLIST, letsencrypt volume).
+
+services:
+  mailforward:
+    image: mwaeckerlin/mailforward
+    build: .
+    environment:
+      MAPPINGS: "forward@example.com sink@example.org"
+    ports:
+      # loopback only: a forwarder without its real MAPPINGS/DNS wiring
+      # is a smoke-test artefact — never expose it beyond the local
+      # machine
+      - "127.0.0.1:2525:25"
+    volumes:
+      # The queue MUST persist: postfix answers 250 once a mail is
+      # fsync'ed into the queue — the sender never retries after that.
+      - type: volume
+        source: spool
+        target: /var/spool/postfix
+    healthcheck:
+      test: ["CMD", "/usr/bin/init", "--healthcheck"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+      start_period: 3s
+
+volumes:
+  spool:

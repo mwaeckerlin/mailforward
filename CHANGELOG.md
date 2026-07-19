@@ -1,5 +1,25 @@
 # Changelog
 
+- 2026-07-18 **security hardening**
+    - Every configuration value from the environment is now validated
+      before use; a malformed value (for example an embedded newline
+      that could smuggle extra configuration directives into the alias
+      map or the postfix configuration) refuses to start with a clear
+      `invalid <VAR>` error. Covered by the new config-validation test
+      suite (`npm test`).
+    - TLS setup modernised: the deprecated `smtpd_use_tls` /
+      `smtpd_tls_eecdh_grade` switches and the hand-rolled 2015-era
+      cipher list are gone (postfix's maintained defaults are
+      stronger); the protocol floor is now TLS 1.2. STARTTLS stays
+      opportunistic, so a legacy sender without TLS 1.2 falls back to
+      plaintext and the mail still arrives — delivery before
+      filtering.
+    - The greylisting example in the README no longer publishes the
+      milter port on the host and uses the milter-greylist port
+      (10025) instead of the retired postgrey policy port.
+    - New standalone compose example (loopback only, with healthcheck
+      and persistent queue volume).
+
 - 2026-07-18 **headless image**
     - The image no longer contains a shell, busybox or a package
       manager: a compiled `init` binary configures postfix from the

@@ -103,6 +103,21 @@ The requires files are, e.g. for domain `example.com`:
  - `/etc/letsencrypt/live/example.com/fullchain.pem`
  - `/etc/letsencrypt/live/example.com/privkey.pem`
 
+The protocol floor is TLS 1.2 (1.0/1.1 are broken); STARTTLS stays
+opportunistic, so a legacy sender without TLS 1.2 falls back to
+plaintext and the mail still arrives — delivery before filtering.
+
+
+Input validation
+----------------
+
+Every environment value is whitelist-validated at start-up before it
+is rendered into the virtual alias map or fed to `postconf` — a
+malformed value (embedded newline, stray metacharacters, out-of-range
+number) aborts the start with a clear `invalid <VAR>` error instead of
+rendering a broken or unsafe configuration. Pinned by
+`tests/config-validation.sh` (`npm test`).
+
 
 Greylisting
 -----------
@@ -116,37 +131,28 @@ implemented mailers must retry. So a lot of spam never reaches your
 mailbox.
 
 To enable greylisting, run a separate greylisting container, using
-e.g. [mwaeckerlin/postgrey](https://hub.docker.com/r/mwaeckerlin/postgrey/),
-then either link it to this container or use teh environment variable
-`GREYLIST` to specify the greylisting container's url and port:
+e.g. [mwaeckerlin/postgrey](https://hub.docker.com/r/mwaeckerlin/postgrey/)
+(a milter-greylist milter on port 10025), and use the environment
+variable `GREYLIST` to specify the greylisting container's host name
+and optional port (default 10025):
 
-   docker run -d --restart unless-stopped --name postgrey \
-              mwaeckerlin/postgrey
-   docker run -d --restart unless-stopped --name mailforward \
-              -p 25:25 \
-              -e 'MAPPINGS=…' \
-              --link postgrey:postgrey \
-              mwaeckerlin/mailforward
-
-Alternatively, e.g. for docker swarm, specify a yaml file:
-
-```
-version: '3.3'
+```yaml
 services:
   postgrey:
     image: mwaeckerlin/postgrey
-    ports:
-      - 10023:10023
+    # no published ports: the milter is only for mailforward — reach it
+    # over the shared compose network, never from the host or beyond
   mailforward:
     image: mwaeckerlin/mailforward
     ports:
       - 25:25
     volumes:
+      # production persistence bind-mount onto shared storage
       - type: bind
         source: /srv/volumes/reverse-proxy/letsencrypt
         target: /etc/letsencrypt
     environment:
-      - 'GREYLIST=postgrey:10023'
+      - 'GREYLIST=postgrey'
       - 'MAPPINGS=…'
 ```
 

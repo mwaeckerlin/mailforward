@@ -21,15 +21,19 @@ RUN mkdir -p /tmp
 RUN chmod 1777 /tmp
 COPY --from=parent /etc/postfix/main.cf /etc/postfix/main.cf
 RUN postconf -e mydestination="localhost"
-RUN postconf -e smtpd_use_tls=no
+# TLS off until init finds a certificate (then security_level=may).
+# Modern parameters only: the deprecated smtpd_use_tls /
+# smtpd_tls_eecdh_grade knobs and the hand-rolled 2015-era
+# tls_high_cipherlist are gone — postfix's maintained defaults are
+# stronger than a frozen custom list.
 RUN postconf -e smtpd_tls_security_level=none
-# secure tls https://blog.tinned-software.net/harden-the-ssl-configuration-of-your-mailserver/
 RUN postconf -e smtpd_tls_auth_only=yes
-RUN postconf -e 'smtpd_tls_mandatory_protocols = !SSLv2, !SSLv3'
-RUN postconf -e 'smtpd_tls_protocols = !SSLv2 !SSLv3'
+# Floor at TLS 1.2: 1.0/1.1 are broken; smtpd stays opportunistic
+# (security_level=may), so a legacy sender without TLS 1.2 falls back
+# to plaintext and the mail still arrives (delivery before filtering).
+RUN postconf -e 'smtpd_tls_mandatory_protocols = >=TLSv1.2'
+RUN postconf -e 'smtpd_tls_protocols = >=TLSv1.2'
 RUN postconf -e smtpd_tls_mandatory_ciphers=high
-RUN postconf -e 'tls_high_cipherlist=EDH+CAMELLIA:EDH+aRSA:EECDH+aRSA+AESGCM:EECDH+aRSA+SHA384:EECDH+aRSA+SHA256:EECDH:+CAMELLIA256:+AES256:+CAMELLIA128:+AES128:+SSLv3:!aNULL:!eNULL:!LOW:!3DES:!MD5:!EXP:!PSK:!DSS:!RC4:!SEED:!ECDSA:CAMELLIA256-SHA:AES256-SHA:CAMELLIA128-SHA:AES128-SHA'
-RUN postconf -e smtpd_tls_eecdh_grade=ultra
 # SPAM Prevention. smtpd_hard_error_limit is set at start-up from the
 # SMTP_HARD_ERROR_LIMIT env (see init.cpp) with the postfix standard
 # default of 20 — the previously hardcoded 1 turned a single 5xx into
