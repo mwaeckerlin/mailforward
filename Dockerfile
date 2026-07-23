@@ -28,12 +28,10 @@ RUN postconf -e mydestination="localhost"
 # stronger than a frozen custom list.
 RUN postconf -e smtpd_tls_security_level=none
 RUN postconf -e smtpd_tls_auth_only=yes
-# Floor at TLS 1.2: 1.0/1.1 are broken; smtpd stays opportunistic
-# (security_level=may), so a legacy sender without TLS 1.2 falls back
-# to plaintext and the mail still arrives (delivery before filtering).
-RUN postconf -e 'smtpd_tls_mandatory_protocols = >=TLSv1.2'
-RUN postconf -e 'smtpd_tls_protocols = >=TLSv1.2'
-RUN postconf -e smtpd_tls_mandatory_ciphers=high
+# The transport-encryption protocol/cipher policy (opportunistic keeps
+# all but SSLv2/3, mandatory floor >=TLSv1.2) is inherited from the
+# mwaeckerlin/smtp-relay base main.cf — it is shared by the whole
+# postfix family and must not be duplicated here.
 # SPAM Prevention. smtpd_hard_error_limit is set at start-up from the
 # SMTP_HARD_ERROR_LIMIT env (see init.cpp) with the postfix standard
 # default of 20 — the previously hardcoded 1 turned a single 5xx into

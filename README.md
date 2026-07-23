@@ -130,11 +130,15 @@ is, that most spammers only try to send an email once, while correctly
 implemented mailers must retry. So a lot of spam never reaches your
 mailbox.
 
-To enable greylisting, run a separate greylisting container, using
-e.g. [mwaeckerlin/postgrey](https://hub.docker.com/r/mwaeckerlin/postgrey/)
-(a milter-greylist milter on port 10025), and use the environment
-variable `GREYLIST` to specify the greylisting container's host name
-and optional port (default 10025):
+To enable greylisting, run a separate greylisting milter and use the
+environment variable `GREYLIST` to specify its host name and optional
+port (default 10025). The historical companion image
+[mwaeckerlin/postgrey](https://hub.docker.com/r/mwaeckerlin/postgrey/)
+(milter-greylist on port 10025) is **deprecated and unmaintained** —
+it stays on Docker Hub for existing setups, but for maintained,
+score-based greylisting use the full
+[mwaeckerlin/mailservice](https://github.com/mwaeckerlin/mailservice)
+stack (rspamd) instead:
 
 ```yaml
 services:

@@ -1,5 +1,16 @@
 # Changelog
 
+- 2026-07-20 **opportunistic TLS floor relaxed**
+    - The TLS 1.2 floor now applies only to the mandatory TLS paths
+      (authenticated / enforced TLS). Opportunistic inbound and outbound
+      TLS keep every protocol except the broken SSLv2/SSLv3, so a legacy
+      peer's mail is still encrypted rather than forced back to
+      plaintext by a hard floor (RFC 7435; delivery before filtering).
+      This `main.cf` is inherited by mwaeckerlin/postfix.
+    - README: the greylisting example now notes that the companion
+      postgrey image is deprecated (use the full mailservice/rspamd
+      stack instead).
+
 - 2026-07-18 **security hardening**
     - Every configuration value from the environment is now validated
       before use; a malformed value (for example an embedded newline
