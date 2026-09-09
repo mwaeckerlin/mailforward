@@ -4,7 +4,7 @@
 # installs postfix fresh (very-base has the package manager the
 # headless parent no longer ships) and layers this image's deltas on
 # the parent's main.cf.
-FROM mwaeckerlin/smtp-relay AS parent
+FROM mwaeckerlin/smtp-relay:3 AS parent
 
 FROM mwaeckerlin/very-base AS init
 RUN $PKG_INSTALL g++
