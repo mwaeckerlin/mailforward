@@ -1,6 +1,6 @@
 # Changelog
 
-- 2026-09-26 **1.2.1**
+- 2026-09-26 **3.5.1**
     - The image builds on arm64 as well as on amd64 and is published for both under one tag, built and published automatically on every change and every week
 
 - 2026-07-20 **opportunistic TLS floor relaxed**
