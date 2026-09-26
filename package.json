@@ -1,11 +1,13 @@
 {
   "name": "@mwaeckerlin/mailforward",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "scripts": {
     "build": "docker compose build",
     "start": "docker compose up --build --force-recreate --remove-orphans",
     "start:daemon": "docker compose up -d --build --force-recreate --remove-orphans",
+    "start:dev": "docker compose up --build --force-recreate --remove-orphans",
     "stop": "docker compose down",
+    "deploy": "docker compose push",
     "test": "npm run test:image && npm run test:config",
     "test:image": "npm run build && bash tests/image-contract.sh mwaeckerlin/mailforward",
     "test:config": "bash tests/config-validation.sh mwaeckerlin/mailforward"
