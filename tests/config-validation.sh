@@ -74,6 +74,11 @@ _reject mailhost_bad          MAILHOST      "mail.example.com bad"
 _reject greylist_injection    GREYLIST      $'postgrey:10025\nmynetworks = 0.0.0.0/0'
 _reject size_not_numeric      MESSAGE_SIZE_LIMIT    "100G"
 _reject hard_error_bad        SMTP_HARD_ERROR_LIMIT "many"
+_reject dnsbl_injection       DNSBL_SERVERS $'zen.spamhaus.org\nmynetworks = 0.0.0.0/0'
+_reject dnsbl_restriction     DNSBL_SERVERS "zen.spamhaus.org, permit"
+_reject rhsbl_injection       RHSBL_SERVERS $'dbl.spamhaus.org\nmynetworks = 0.0.0.0/0'
+_reject mynetworks_injection  MYNETWORKS    $'10.0.0.0/8\nsmtpd_tls_auth_only = no'
+_reject relayhost_bad         RELAYHOST     $'relay.example.com\nmynetworks = 0.0.0.0/0'
 
 _accept defaults
 _accept explicit_values \
@@ -81,6 +86,10 @@ _accept explicit_values \
     -e LOCAL_DOMAINS='fwd.local other.local' \
     -e MAILHOST=fwd.local \
     -e GREYLIST=postgrey:10025 \
+    -e DNSBL_SERVERS='zen.spamhaus.org bl.example.org' \
+    -e RHSBL_SERVERS=dbl.spamhaus.org \
+    -e MYNETWORKS='127.0.0.0/8, [::1]/128' \
+    -e RELAYHOST=relay.example.com:587 \
     -e MESSAGE_SIZE_LIMIT=107374182400 \
     -e SMTP_HARD_ERROR_LIMIT=20
 

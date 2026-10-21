@@ -24,9 +24,13 @@ Behaviour (port of the former start.sh, contract unchanged):
      (MESSAGE_SIZE_LIMIT default 100 GiB, SMTP_HARD_ERROR_LIMIT 20;
      the previously hardcoded smtpd_hard_error_limit=1 turned a single
      5xx into an abrupt 421).
-  6. postsuper queue sanity, then exec master in init mode (-i) as
+  6. DNSBL_SERVERS / RHSBL_SERVERS replace the blocklist zones of the
+     smtpd restrictions (unset keeps the baked-in zones; DISABLE_DNSBL
+     drops them all). MYNETWORKS replaces the networks allowed to
+     relay; RELAYHOST host or host:port relays all outbound mail.
+  7. postsuper queue sanity, then exec master in init mode (-i) as
      PID 1. maillog_file=/dev/stdout keeps logs on stdout.
-  7. Every env value is whitelist-validated before it is rendered into
+  8. Every env value is whitelist-validated before it is rendered into
      the virtual map or fed to postconf — a malformed value (a newline
      above all: config injection) aborts the start with a clear
      `invalid <VAR>` error. Pinned by tests/config-validation.sh.
@@ -233,6 +237,73 @@ disable_dnsbl() {
   std::cerr << "**** DNSBL/RBL checks disabled" << std::endl;
 }
 
+std::vector<std::string>
+split_ws(const std::string &s) {
+  std::vector<std::string> out;
+  std::istringstream in(s);
+  std::string tok;
+  while (in >> tok) out.push_back(tok);
+  return out;
+}
+
+// Each blocklist check (reject_rbl_client, reject_rhsbl_<kind>) keeps
+// its place in every restriction list, with the zones from the env.
+void
+set_blocklists(const std::string &rbl, const std::string &rhsbl) {
+  if (rbl.empty() && rhsbl.empty()) return;
+  for (const char *param : {"smtpd_client_restrictions",
+                            "smtpd_helo_restrictions",
+                            "smtpd_sender_restrictions",
+                            "smtpd_recipient_restrictions",
+                            "smtpd_relay_restrictions"}) {
+    std::vector<std::string> items;
+    std::set<std::string> done;
+    std::istringstream in(postconf_get(param));
+    std::string item;
+    while (std::getline(in, item, ',')) {
+      item = trim(item);
+      if (item.empty()) continue;
+      const std::string kind = item.substr(0, item.find_first_of(" \t"));
+      const bool is_rbl   = kind == "reject_rbl_client";
+      const bool is_rhsbl = kind.rfind("reject_rhsbl_", 0) == 0;
+      const std::string &zones = is_rbl ? rbl : rhsbl;
+      if ((!is_rbl && !is_rhsbl) || zones.empty()) {
+        items.push_back(item);
+        continue;
+      }
+      if (!done.insert(kind).second) continue;
+      for (const auto &zone : split_ws(zones)) items.push_back(kind + " " + zone);
+    }
+    std::string joined;
+    for (const auto &i : items) joined += (joined.empty() ? "" : ", ") + i;
+    postconf_set(param, joined);
+  }
+  std::cerr << "**** DNSBL zones: " << (rbl.empty() ? "(built-in)" : rbl)
+            << "; RHSBL zones: " << (rhsbl.empty() ? "(built-in)" : rhsbl)
+            << std::endl;
+}
+
+// The brackets suppress the MX lookup; a port stays outside them.
+std::string
+bracket_relayhost(const std::string &relayhost) {
+  const auto colon = relayhost.find(':');
+  if (colon == std::string::npos) return "[" + relayhost + "]";
+  return "[" + relayhost.substr(0, colon) + "]" + relayhost.substr(colon);
+}
+
+void
+configure_routing(const std::string &mynetworks, const std::string &relayhost) {
+  if (!mynetworks.empty()) {
+    postconf_set("mynetworks", mynetworks);
+    std::cerr << "**** mynetworks = " << mynetworks << std::endl;
+  }
+  if (!relayhost.empty()) {
+    postconf_set("relayhost", bracket_relayhost(relayhost));
+    std::cerr << "**** All outbound mail relayed through "
+              << relayhost << std::endl;
+  }
+}
+
 void
 configure_greylist_milter() {
   std::string greylist = env_or("GREYLIST");
@@ -317,6 +388,10 @@ int main(int argc, char *argv[]) try {
   check_chars("LOCAL_DOMAINS", env_or("LOCAL_DOMAINS"), ".- ");
   check_chars("MAILHOST",      env_or("MAILHOST"),      ".-");
   check_chars("GREYLIST",      env_or("GREYLIST"),      ".-_:");
+  check_chars("DNSBL_SERVERS", env_or("DNSBL_SERVERS"), ".- ");
+  check_chars("RHSBL_SERVERS", env_or("RHSBL_SERVERS"), ".- ");
+  check_chars("MYNETWORKS",    env_or("MYNETWORKS"),    " ./:,[]!-");
+  check_chars("RELAYHOST",     env_or("RELAYHOST"),     ".-_:");
   check_num("MESSAGE_SIZE_LIMIT",
             env_or("MESSAGE_SIZE_LIMIT", "107374182400"), 0, 999999999999999L);
   check_num("SMTP_HARD_ERROR_LIMIT",
@@ -341,7 +416,10 @@ int main(int argc, char *argv[]) try {
     out << m.virtual_lines;
   }
 
+  if (env_or("DISABLE_DNSBL").empty())
+    set_blocklists(env_or("DNSBL_SERVERS"), env_or("RHSBL_SERVERS"));
   disable_dnsbl();
+  configure_routing(env_or("MYNETWORKS"), env_or("RELAYHOST"));
   configure_greylist_milter();
   configure_tls(domain);
 

@@ -1,5 +1,10 @@
 # Changelog
 
+- 2026-10-22 **3.5.2**
+    - The DNS blocklists are chosen with `DNSBL_SERVERS` (client address lists, default manitu and spamhaus SBL/XBL) and `RHSBL_SERVERS` (domain lists, default spamhaus DBL); every check keeps its place in the restrictions, and `DISABLE_DNSBL` still removes them all
+    - The networks allowed to relay are set with `MYNETWORKS`, and `RELAYHOST` sends all outbound mail through one host; unset, both behave as before
+    - A test starts the image and reads the effective postfix configuration for every new variable, unset and set
+
 - 2026-09-26 **3.5.1**
     - The image builds on arm64 as well as on amd64 and is published for both under one tag, built and published automatically on every change and every week
 
