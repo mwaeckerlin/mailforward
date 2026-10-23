@@ -1,5 +1,10 @@
 # Changelog
 
+- 2026-10-23 **1.2.1**
+    - The version line 3 is built and published again as `mwaeckerlin/mailforward:3`, for amd64 and arm64, on every push to this branch and every week with the run on master, so it gets the security fixes of its base images
+    - The image builds on arm64 as well; the build no longer names the amd64 loader of the C library
+    - The tests check the image: it carries no shell, busybox or perl, and a malformed environment value is refused at start
+
 - 2026-07-20 **opportunistic TLS floor relaxed**
     - The TLS 1.2 floor now applies only to the mandatory TLS paths
       (authenticated / enforced TLS). Opportunistic inbound and outbound
