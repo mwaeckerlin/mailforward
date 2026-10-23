@@ -52,35 +52,36 @@ _start() {
     return 1
 }
 
+# postconf and postmap print the result on stdout and their warnings on stderr
 _expect() {
     local name="$1" param="$2" want="$3" got
-    got=$(docker exec "${CID}" /usr/sbin/postconf -h "${param}" 2>&1)
+    got=$(docker exec "${CID}" /usr/sbin/postconf -h "${param}" 2>/dev/null)
     if [[ "${got}" == "${want}" ]]; then
         _pass "${name}"
     else
-        _fail "${name}" "${param} = '${got}', expected '${want}'"
+        _fail "${name}" "${param} = '${got}', expected '${want}' / $(docker exec "${CID}" /usr/sbin/postconf -h "${param}" 2>&1)"
     fi
 }
 
 _contains() {
     local name="$1" param="$2" want="$3" got
-    got=$(docker exec "${CID}" /usr/sbin/postconf -h "${param}" 2>&1)
+    got=$(docker exec "${CID}" /usr/sbin/postconf -h "${param}" 2>/dev/null)
     if [[ " ${got//,/ } " == *" ${want} "* ]]; then
         _pass "${name}"
     else
-        _fail "${name}" "${param} = '${got}', expected it to contain '${want}'"
+        _fail "${name}" "${param} = '${got}', expected it to contain '${want}' / $(docker exec "${CID}" /usr/sbin/postconf -h "${param}" 2>&1)"
     fi
 }
 
 # the map is looked up with the type the configuration names, as smtpd does
 _forwards() {
     local name="$1" address="$2" want="$3" map got
-    map=$(docker exec "${CID}" /usr/sbin/postconf -h virtual_alias_maps 2>&1)
-    got=$(docker exec "${CID}" /usr/sbin/postmap -q "${address}" "${map}" 2>&1)
+    map=$(docker exec "${CID}" /usr/sbin/postconf -h virtual_alias_maps 2>/dev/null)
+    got=$(docker exec "${CID}" /usr/sbin/postmap -q "${address}" "${map}" 2>/dev/null)
     if [[ "${got}" == "${want}" ]]; then
         _pass "${name}"
     else
-        _fail "${name}" "lookup of ${address} in ${map} gave '${got}', expected '${want}'"
+        _fail "${name}" "lookup of ${address} in ${map} gave '${got}', expected '${want}' / $(docker exec "${CID}" /usr/sbin/postmap -q "${address}" "${map}" 2>&1)"
     fi
 }
 
