@@ -1,0 +1,12 @@
+{
+  "name": "@mwaeckerlin/mailforward",
+  "version": "2.0.1",
+  "scripts": {
+    "build": "docker compose build",
+    "start": "docker compose up --build --force-recreate --remove-orphans",
+    "start:daemon": "docker compose up -d --build --force-recreate --remove-orphans",
+    "stop": "docker compose down",
+    "deploy": "docker compose push",
+    "test": "bash tests/image-contract.sh mwaeckerlin/mailforward"
+  }
+}

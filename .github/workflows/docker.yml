@@ -1,0 +1,22 @@
+# Builds the image of the version line 2 for amd64 and arm64 and publishes it
+# on Docker Hub as mwaeckerlin/mailforward:2, on every push to this branch and
+# once a week, when the run on master starts this branch for the security
+# fixes of the base images. The build itself is the reusable workflow
+# docker-image.yml of mwaeckerlin/scratch.
+
+name: docker
+
+on:
+  push:
+    branches: ["2"]
+  workflow_dispatch:
+
+# one run per branch at a time; a branch never cancels the run of another
+concurrency: docker-${{ github.ref_name }}
+
+jobs:
+  docker:
+    uses: mwaeckerlin/scratch/.github/workflows/docker-image.yml@master
+    with:
+      branch-tags: '[{"branch": "2", "suffix": "-2"}]'
+    secrets: inherit
