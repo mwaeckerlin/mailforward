@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Image contract: `postfix check` accepts the configuration, the container
 # starts the postfix master, the virtual alias map built from MAPPINGS
-# answers a lookup with the forward target, and the GREYLIST milter reaches
-# the effective configuration.
+# answers a lookup with the forward target, TLS is off without a
+# certificate and opportunistic with one, the GREYLIST milter reaches the
+# effective configuration, and postconf prints no warning about the
+# configuration, neither in the image nor after start.sh.
 #
 # `--network none` keeps every container off the network; `--pull=never`
 # tests the local build.
@@ -13,6 +15,8 @@ set -uo pipefail
 
 # the last argument, so `npm test -- <image>` measures another image
 IMAGE="${!#}"
+WORK="$(mktemp -d)"
+CERTS=""
 PASS=0
 FAIL=0
 declare -a FAILED_NAMES
@@ -23,8 +27,20 @@ _fail() { FAIL=$((FAIL + 1)); FAILED_NAMES+=("$1"); echo "  FAIL  $1: $2"; }
 
 _cleanup() {
     [[ ${#CONTAINERS[@]} -gt 0 ]] && docker rm -f "${CONTAINERS[@]}" > /dev/null 2>&1
+    rm -rf "${WORK}"
 }
 trap _cleanup EXIT
+
+# postconf writes every warning about main.cf and master.cf to stderr
+_no_warnings() {
+    local name="$1" warnings
+    warnings=$(docker exec "${CID}" /usr/sbin/postconf -n 2>&1 > /dev/null)
+    if [[ -z "${warnings}" ]]; then
+        _pass "${name}"
+    else
+        _fail "${name}" "postconf warns: ${warnings}"
+    fi
+}
 
 _results() {
     echo ""
@@ -35,12 +51,15 @@ _results() {
     fi
 }
 
-# sets CID once `postfix status` reports the master running, fails after 60 probes
+# sets CID once `postfix status` reports the master running, fails after 60
+# probes; with CERTS set, its letsencrypt tree is copied in before the start
 _start() {
     local name="$1" i
     shift
-    CID=$(docker run -d --pull=never --network none "$@" "${IMAGE}")
+    CID=$(docker create --pull=never --network none "$@" "${IMAGE}")
     CONTAINERS+=("${CID}")
+    [[ -n "${CERTS}" ]] && docker cp "${CERTS}/." "${CID}:/etc/letsencrypt" > /dev/null
+    docker start "${CID}" > /dev/null
     for i in $(seq 1 60); do
         if docker exec "${CID}" /usr/sbin/postfix status > /dev/null 2>&1; then
             _pass "${name}_started"
@@ -98,6 +117,13 @@ else
     _fail "postfix_check" "${OUT}"
 fi
 
+WARNINGS=$(docker run --rm --pull=never --network none --entrypoint /usr/sbin/postconf "${IMAGE}" -n 2>&1 > /dev/null)
+if [[ -z "${WARNINGS}" ]]; then
+    _pass "image_no_postconf_warnings"
+else
+    _fail "image_no_postconf_warnings" "postconf warns: ${WARNINGS}"
+fi
+
 if _start mappings \
        -e MAILHOST=mail.example.com \
        -e MAPPINGS="forward@example.com sink@example.org; other@example.net sink@example.org"; then
@@ -107,8 +133,9 @@ if _start mappings \
     _forwards forward_first       forward@example.com sink@example.org
     _forwards forward_second      other@example.net   sink@example.org
     _contains relay_restricted    smtpd_relay_restrictions reject_unauth_destination
-    _expect   no_cert_no_tls      smtpd_use_tls no
+    _expect   no_cert_no_tls      smtpd_tls_security_level none
     _expect   no_greylist         smtpd_milters ""
+    _no_warnings mappings_no_postconf_warnings
 fi
 
 if _start greylist \
@@ -117,6 +144,21 @@ if _start greylist \
        -e GREYLIST=greylist; then
     _expect greylist_default_port smtpd_milters     "inet:greylist:10025"
     _expect greylist_non_smtpd    non_smtpd_milters "inet:greylist:10025"
+    _no_warnings greylist_no_postconf_warnings
 fi
+
+mkdir -p "${WORK}/letsencrypt/live/mail.example.com"
+openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=mail.example.com" \
+    -keyout "${WORK}/letsencrypt/live/mail.example.com/privkey.pem" \
+    -out "${WORK}/letsencrypt/live/mail.example.com/fullchain.pem" > /dev/null 2>&1
+CERTS="${WORK}/letsencrypt"
+if _start certificate \
+       -e MAILHOST=mail.example.com \
+       -e MAPPINGS="forward@example.com sink@example.org"; then
+    _expect cert_tls_may  smtpd_tls_security_level may
+    _expect cert_file     smtpd_tls_cert_file /etc/letsencrypt/live/mail.example.com/fullchain.pem
+    _no_warnings certificate_no_postconf_warnings
+fi
+CERTS=""
 
 _results
