@@ -1,5 +1,8 @@
 # Changelog
 
+- 2026-10-23 **3.5.3**
+    - The weekly run also rebuilds the version lines 1, 2 and 3, published as `mwaeckerlin/mailforward:1`, `:2` and `:3` from the branches `1`, `2` and `3`, so every line gets the security fixes of its base images
+
 - 2026-10-22 **3.5.2**
     - The DNS blocklists are chosen with `DNSBL_SERVERS` (client address lists, default manitu and spamhaus SBL/XBL) and `RHSBL_SERVERS` (domain lists, default spamhaus DBL); every check keeps its place in the restrictions, and `DISABLE_DNSBL` still removes them all
     - The networks allowed to relay are set with `MYNETWORKS`, and `RELAYHOST` sends all outbound mail through one host; unset, both behave as before

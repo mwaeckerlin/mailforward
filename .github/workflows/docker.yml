@@ -20,4 +20,10 @@ concurrency: docker-${{ github.ref_name }}
 jobs:
   docker:
     uses: mwaeckerlin/scratch/.github/workflows/docker-image.yml@master
+    # the weekly run starts the version lines 1, 2 and 3 (tags `1`, `2`, `3`) as well
+    permissions:
+      actions: write
+      contents: read
+    with:
+      branch-tags: '[{"branch": "1", "suffix": "-1"}, {"branch": "2", "suffix": "-2"}, {"branch": "3", "suffix": "-3"}]'
     secrets: inherit
